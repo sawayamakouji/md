@@ -1,0 +1,2263 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local Markdown Editor</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --panel: #ffffff;
+      --panel-2: #f9fafb;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #1f4e79;
+      --accent-2: #e8f1f8;
+      --danger: #b91c1c;
+      --code-bg: #111827;
+      --code-text: #f9fafb;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: var(--sans);
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 220px;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), #4b7ea8);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    button,
+    label.button,
+    select {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      min-height: 34px;
+    }
+
+    button:hover,
+    label.button:hover,
+    select:hover {
+      background: var(--panel-2);
+      border-color: #aeb6c2;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    button.primary:hover {
+      background: #173b5c;
+    }
+
+    button.danger {
+      color: var(--danger);
+    }
+
+    input[type="color"] {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      padding: 2px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+      cursor: pointer;
+    }
+
+    .color-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .preview .md-color,
+    .preview .md-bg {
+      border-radius: 4px;
+      padding: 0.04em 0.18em;
+    }
+
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .filename-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+      padding: 0 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .filename-box span {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .filename-box input {
+      width: 210px;
+      max-width: 30vw;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--sans);
+    }
+
+    .filename-box label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .filename-box input[type="checkbox"] {
+      width: auto;
+      max-width: none;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .filename-box .mini-button {
+      border: 0;
+      background: var(--accent-2);
+      color: var(--accent);
+      min-height: 24px;
+      padding: 4px 7px;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+
+    .filename-box .mini-button:hover {
+      background: #d7e8f4;
+    }
+
+    @media (max-width: 860px) {
+      .filename-box {
+        width: 100%;
+      }
+
+      .filename-box input {
+        width: 100%;
+        max-width: none;
+      }
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      z-index: 9;
+    }
+
+    .toolbar .group {
+      display: flex;
+      gap: 6px;
+      padding-right: 8px;
+      margin-right: 4px;
+      border-right: 1px solid var(--border);
+    }
+
+    .toolbar .group:last-child {
+      border-right: 0;
+    }
+
+    .toolbar button {
+      white-space: nowrap;
+      min-width: 34px;
+      padding: 8px 9px;
+      font-weight: 600;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: 0;
+    }
+
+    main.editor-only {
+      grid-template-columns: 1fr;
+    }
+
+    main.preview-only {
+      grid-template-columns: 1fr;
+    }
+
+    main.editor-only .preview-pane,
+    main.preview-only .editor-pane {
+      display: none;
+    }
+
+    .pane {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+    }
+
+    .editor-pane {
+      border-right: 1px solid var(--border);
+    }
+
+    .pane-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      background: #fff;
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      padding: 18px;
+      border: 0;
+      outline: 0;
+      resize: none;
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+      background: #fcfcfd;
+      tab-size: 2;
+    }
+
+    .preview-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      background: #ffffff;
+    }
+
+    .preview {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 34px 60px;
+      line-height: 1.8;
+      word-break: break-word;
+    }
+
+    .preview h1,
+    .preview h2,
+    .preview h3,
+    .preview h4,
+    .preview h5,
+    .preview h6 {
+      line-height: 1.35;
+      margin: 1.4em 0 0.55em;
+      letter-spacing: -0.02em;
+    }
+
+    .preview h1 {
+      font-size: 2rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.25em;
+    }
+
+    .preview h2 {
+      font-size: 1.55rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.25em;
+    }
+
+    .preview h3 {
+      font-size: 1.25rem;
+    }
+
+    .preview p {
+      margin: 0.85em 0;
+    }
+
+    .preview a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .preview blockquote {
+      margin: 1em 0;
+      padding: 0.2em 1em;
+      color: #374151;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-2);
+      border-radius: 0 10px 10px 0;
+    }
+
+    .preview ul,
+    .preview ol {
+      padding-left: 1.6em;
+    }
+
+    .preview li {
+      margin: 0.25em 0;
+    }
+
+    .preview table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1.2em 0;
+      font-size: 14px;
+      overflow: hidden;
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px var(--border);
+    }
+
+    .preview th,
+    .preview td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      vertical-align: top;
+    }
+
+    .preview th {
+      background: #eef2f7;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .preview tr:nth-child(even) td {
+      background: #fbfcfe;
+    }
+
+    .preview code:not(pre code) {
+      font-family: var(--mono);
+      background: #eef2f7;
+      color: #111827;
+      border: 1px solid #d8dee8;
+      border-radius: 6px;
+      padding: 0.12em 0.35em;
+      font-size: 0.92em;
+    }
+
+    .code-block {
+      position: relative;
+      margin: 1.2em 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--code-bg);
+      box-shadow: var(--shadow);
+    }
+
+    .code-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 34px;
+      padding: 7px 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #d1d5db;
+      background: #0b1220;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .copy-code {
+      min-height: 24px;
+      padding: 4px 8px;
+      border-radius: 7px;
+      font-size: 12px;
+      background: #1f2937;
+      color: #f9fafb;
+      border-color: #374151;
+    }
+
+    .copy-code:hover {
+      background: #374151;
+      border-color: #4b5563;
+    }
+
+    pre {
+      margin: 0;
+      padding: 15px 16px;
+      overflow: auto;
+      color: var(--code-text);
+      background: var(--code-bg);
+      font-family: var(--mono);
+      font-size: 13.5px;
+      line-height: 1.65;
+    }
+
+    .preview img {
+      max-width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .preview hr {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 2em 0;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+      z-index: 9;
+    }
+
+    .status strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      padding: 10px 13px;
+      border-radius: 10px;
+      background: #111827;
+      color: white;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: 0.18s ease;
+      z-index: 1000;
+      box-shadow: var(--shadow);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .mobile-tabs {
+      display: none;
+      padding: 8px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+
+    .mobile-tabs button {
+      flex: 1;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        height: 100dvh;
+      }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 10px 12px;
+      }
+
+      .brand {
+        min-width: 0;
+      }
+
+      .controls {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .toolbar {
+        padding: 8px 10px;
+      }
+
+      .mobile-tabs {
+        display: flex;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      main.mobile-editor .preview-pane,
+      main.mobile-preview .editor-pane {
+        display: none;
+      }
+
+      .editor-pane {
+        border-right: 0;
+      }
+
+      .preview {
+        padding: 20px 18px 48px;
+      }
+
+      textarea {
+        font-size: 13.5px;
+        padding: 14px;
+      }
+    }
+
+    @media print {
+      header,
+      .toolbar,
+      .pane-title,
+      .editor-pane,
+      .status,
+      .mobile-tabs,
+      .toast {
+        display: none !important;
+      }
+
+      body {
+        height: auto;
+        overflow: visible;
+        background: white;
+      }
+
+      main,
+      .preview-pane,
+      .preview-wrap {
+        display: block !important;
+        height: auto;
+        overflow: visible;
+      }
+
+      .preview {
+        max-width: none;
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-mark">M↓</div>
+      <div>
+        <h1>Local Markdown Editor</h1>
+        <p>単体HTML・画像貼付・雛形・色変更・リスト自動継続</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <select id="viewMode" title="表示切替">
+        <option value="split">左右分割</option>
+        <option value="editor">編集のみ</option>
+        <option value="preview">プレビューのみ</option>
+      </select>
+      <label class="button" for="fileInput">MD読込</label>
+      <input id="fileInput" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" />
+      <input id="imageInput" type="file" accept="image/*" multiple />
+      <div class="filename-box" title="自動ONの場合は、タイトルと作成日時から保存名を作ります">
+        <span>保存名</span>
+        <input id="filenameInput" type="text" value="" placeholder="自動: タイトル_作成日時" />
+        <label title="ONの場合、保存時にタイトルと作成日時から自動命名します">
+          <input id="autoFilename" type="checkbox" checked />
+          自動
+        </label>
+        <button id="refreshFilename" class="mini-button" type="button" title="タイトルと作成日時から保存名を更新">更新</button>
+      </div>
+      <button id="downloadMd">MD保存</button>
+      <button id="downloadHtml">HTML保存</button>
+      <button id="printPreview">印刷</button>
+      <button id="clearAll" class="danger">クリア</button>
+    </div>
+  </header>
+
+  <div class="toolbar" aria-label="Markdown toolbar">
+    <div class="group">
+      <button data-insert="# " title="見出し1">H1</button>
+      <button data-insert="## " title="見出し2">H2</button>
+      <button data-insert="### " title="見出し3">H3</button>
+    </div>
+    <div class="group">
+      <button data-wrap="**" title="太字">B</button>
+      <button data-wrap="*" title="斜体"><em>I</em></button>
+      <button data-wrap="~~" title="取り消し線">S</button>
+      <button data-wrap="`" title="インラインコード">&lt;/&gt;</button>
+    </div>
+    <div class="group">
+      <span class="color-control" title="選択文字の色を変える">
+        <input id="textColorPicker" type="color" value="#b91c1c" />
+        <button id="applyTextColor">文字色</button>
+      </span>
+      <span class="color-control" title="選択文字の背景色を変える">
+        <input id="textBgColorPicker" type="color" value="#fff2cc" />
+        <button id="applyTextBgColor">文字背景</button>
+      </span>
+      <span class="color-control" title="画面全体の背景色を変える">
+        <input id="appBgColorPicker" type="color" value="#f3f4f6" />
+        <button id="applyAppBgColor">全体背景</button>
+      </span>
+      <button id="resetColorSettings" title="背景色設定を初期化">色リセット</button>
+    </div>
+    <div class="group">
+      <button data-block="quote" title="引用">引用</button>
+      <button data-block="ul" title="箇条書き">・リスト</button>
+      <button data-block="ol" title="番号リスト">1. リスト</button>
+      <button data-block="task" title="タスクリスト">☐ Task</button>
+    </div>
+    <div class="group">
+      <button data-template="code" title="コードブロック">``` code</button>
+      <button data-template="table" title="表">表</button>
+      <button data-template="link" title="リンク">リンク</button>
+      <button data-template="image" title="画像リンク">画像リンク</button>
+      <button id="uploadImage" title="画像を本文に埋め込み。大きい画像は自動圧縮">画像挿入</button>
+    </div>
+    <div class="group">
+      <button data-template="hr" title="区切り線">HR</button>
+    </div>
+    <div class="group">
+      <select id="templateSelect" title="文書テンプレート">
+        <option value="">雛形を選択</option>
+        <option value="business_memo">社内連絡メモ</option>
+        <option value="meeting_minutes">議事録</option>
+        <option value="weekly_report">週次報告</option>
+        <option value="issue_report">課題・障害報告</option>
+        <option value="improvement_proposal">業務改善提案</option>
+        <option value="measure_plan">施策計画書</option>
+        <option value="measure_review">施策振り返り</option>
+        <option value="kpi_analysis">KPI・数値分析報告</option>
+        <option value="decision_request">判断依頼書</option>
+        <option value="a3_framework">A3問題解決</option>
+        <option value="raci">RACI整理</option>
+        <option value="pdca">PDCA整理</option>
+      </select>
+      <button id="insertTemplate" title="選択した雛形を本文に挿入">雛形挿入</button>
+      <button id="copyMarkdown" title="Markdownをコピー">MDコピー</button>
+    </div>
+  </div>
+
+  <div class="mobile-tabs">
+    <button id="mobileEdit" class="primary">編集</button>
+    <button id="mobilePreview">プレビュー</button>
+  </div>
+
+  <main id="layout">
+    <section class="pane editor-pane">
+      <div class="pane-title">
+        <span>Markdown</span>
+        <span id="saveState">未保存</span>
+      </div>
+      <textarea id="editor" spellcheck="false"></textarea>
+    </section>
+
+    <section class="pane preview-pane">
+      <div class="pane-title">
+        <span>Preview</span>
+        <span>コードブロックはコピー可能</span>
+      </div>
+      <div class="preview-wrap">
+        <article id="preview" class="preview"></article>
+      </div>
+    </section>
+  </main>
+
+  <div class="status">
+    <span><strong id="charCount">0</strong> 文字 / <strong id="wordCount">0</strong> 語 / <strong id="lineCount">0</strong> 行</span>
+    <span id="lastSaved">localStorageに自動保存</span>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "local-markdown-editor-content-v1";
+    const CREATED_AT_KEY = "local-markdown-editor-created-at-v1";
+    const AUTO_FILENAME_KEY = "local-markdown-editor-auto-filename-v1";
+    const APP_BG_COLOR_KEY = "local-markdown-editor-app-bg-color-v1";
+
+    const initialMarkdown = `# ローカルMarkdownエディタ
+
+このHTMLは単体で動きます。外部ライブラリは使っていません。
+
+## できること
+
+- Markdown入力
+- ライブプレビュー
+- コードブロック
+- 表
+- タスクリスト
+- ローカル自動保存
+- Markdown保存
+- HTML保存
+- 印刷
+
+## コードブロック例
+
+\`\`\`javascript
+function hello(name) {
+  console.log(\`Hello, \${name}\`);
+}
+
+hello("Markdown");
+\`\`\`
+
+## 表の例
+
+| 項目 | 内容 |
+|---|---|
+| 保存 | ブラウザのlocalStorage |
+| 動作 | ローカルHTML |
+| 依存 | なし |
+
+> メモ、議事録、社内共有文の下書きに使えます。
+>
+> 画像は「画像挿入」ボタン、スクリーンショット貼り付け、ドラッグ&ドロップで本文に埋め込めます。大きい画像は自動で縮小・圧縮されます。
+>
+> 文字色は {{color:#b91c1c|重要}}、文字背景色は {{bg:#fff2cc|強調}} の形式で保存されます。
+>
+> 箇条書き、番号リスト、タスクリストでは Enter を押すと次の行にも自動で記号が入ります。空の項目で Enter を押すとリストを終了します。
+`;
+
+    const editor = document.getElementById("editor");
+    const preview = document.getElementById("preview");
+    const layout = document.getElementById("layout");
+    const viewMode = document.getElementById("viewMode");
+    const saveState = document.getElementById("saveState");
+    const lastSaved = document.getElementById("lastSaved");
+    const charCount = document.getElementById("charCount");
+    const wordCount = document.getElementById("wordCount");
+    const lineCount = document.getElementById("lineCount");
+    const toast = document.getElementById("toast");
+
+    let renderTimer = null;
+    let toastTimer = null;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 1600);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function safeUrl(url) {
+      const trimmed = String(url || "").trim();
+      if (/^(https?:|mailto:|tel:|#|\.\/|\.\.\/|\/)/i.test(trimmed)) {
+        return escapeHtml(trimmed);
+      }
+      return "#";
+    }
+
+    function safeImageUrl(url) {
+      const trimmed = String(url || "").trim();
+      if (/^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml);base64,/i.test(trimmed)) {
+        return escapeHtml(trimmed);
+      }
+      return safeUrl(trimmed);
+    }
+
+    function processInline(text) {
+      let escaped = escapeHtml(text);
+      const codeTokens = [];
+
+      escaped = escaped.replace(/`([^`]+)`/g, (_, code) => {
+        const token = `@@CODE_${codeTokens.length}@@`;
+        codeTokens.push(`<code>${code}</code>`);
+        return token;
+      });
+
+      escaped = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+        return `<img src="${safeImageUrl(url)}" alt="${escapeHtml(alt)}" loading="lazy">`;
+      });
+
+      escaped = escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
+        return `<a href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+      });
+
+      escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      escaped = escaped.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+      escaped = escaped.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+      escaped = escaped.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+      escaped = escaped.replace(/_([^_\n]+)_/g, "<em>$1</em>");
+
+      escaped = escaped.replace(/\{\{color:(#[0-9a-fA-F]{6})\|(.+?)\}\}/g, '<span class="md-color" style="color:$1">$2</span>');
+      escaped = escaped.replace(/\{\{bg:(#[0-9a-fA-F]{6})\|(.+?)\}\}/g, '<span class="md-bg" style="background-color:$1">$2</span>');
+
+      codeTokens.forEach((html, index) => {
+        escaped = escaped.replaceAll(`@@CODE_${index}@@`, html);
+      });
+
+      return escaped;
+    }
+
+    function isTableSeparator(line) {
+      return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+    }
+
+    function splitTableRow(line) {
+      let row = line.trim();
+      if (row.startsWith("|")) row = row.slice(1);
+      if (row.endsWith("|")) row = row.slice(0, -1);
+      return row.split("|").map(cell => cell.trim());
+    }
+
+    function renderTable(lines, startIndex) {
+      const header = splitTableRow(lines[startIndex]);
+      const alignSource = splitTableRow(lines[startIndex + 1]);
+      const align = alignSource.map(cell => {
+        const left = cell.startsWith(":");
+        const right = cell.endsWith(":");
+        if (left && right) return "center";
+        if (right) return "right";
+        return "left";
+      });
+
+      let i = startIndex + 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim() !== "") {
+        rows.push(splitTableRow(lines[i]));
+        i++;
+      }
+
+      let html = "<table><thead><tr>";
+      header.forEach((cell, idx) => {
+        html += `<th style="text-align:${align[idx] || "left"}">${processInline(cell)}</th>`;
+      });
+      html += "</tr></thead><tbody>";
+      rows.forEach(row => {
+        html += "<tr>";
+        header.forEach((_, idx) => {
+          html += `<td style="text-align:${align[idx] || "left"}">${processInline(row[idx] || "")}</td>`;
+        });
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+
+      return { html, nextIndex: i };
+    }
+
+    function parseMarkdown(markdown) {
+      const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+      const out = [];
+      let paragraph = [];
+      let listType = null;
+      let inCode = false;
+      let codeLang = "";
+      let codeLines = [];
+
+      function flushParagraph() {
+        if (!paragraph.length) return;
+        out.push(`<p>${processInline(paragraph.join(" "))}</p>`);
+        paragraph = [];
+      }
+
+      function closeList() {
+        if (!listType) return;
+        out.push(`</${listType}>`);
+        listType = null;
+      }
+
+      function openList(type) {
+        if (listType === type) return;
+        closeList();
+        out.push(`<${type}>`);
+        listType = type;
+      }
+
+      function renderCodeBlock(lang, code) {
+        const langLabel = lang ? escapeHtml(lang) : "code";
+        const escapedCode = escapeHtml(code);
+        return `<div class="code-block"><div class="code-bar"><span>${langLabel}</span><button class="copy-code" type="button">コピー</button></div><pre><code>${escapedCode}</code></pre></div>`;
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (/^```/.test(line.trim())) {
+          if (inCode) {
+            out.push(renderCodeBlock(codeLang, codeLines.join("\n")));
+            inCode = false;
+            codeLang = "";
+            codeLines = [];
+          } else {
+            flushParagraph();
+            closeList();
+            inCode = true;
+            codeLang = line.trim().replace(/^```/, "").trim();
+            codeLines = [];
+          }
+          continue;
+        }
+
+        if (inCode) {
+          codeLines.push(line);
+          continue;
+        }
+
+        if (line.trim() === "") {
+          flushParagraph();
+          closeList();
+          continue;
+        }
+
+        if (line.includes("|") && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
+          flushParagraph();
+          closeList();
+          const table = renderTable(lines, i);
+          out.push(table.html);
+          i = table.nextIndex - 1;
+          continue;
+        }
+
+        const heading = /^(#{1,6})\s+(.+)$/.exec(line);
+        if (heading) {
+          flushParagraph();
+          closeList();
+          const level = heading[1].length;
+          out.push(`<h${level}>${processInline(heading[2])}</h${level}>`);
+          continue;
+        }
+
+        if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+          flushParagraph();
+          closeList();
+          out.push("<hr>");
+          continue;
+        }
+
+        const quote = /^>\s?(.*)$/.exec(line);
+        if (quote) {
+          flushParagraph();
+          closeList();
+          const quoteLines = [quote[1]];
+          while (i + 1 < lines.length && /^>\s?/.test(lines[i + 1])) {
+            i++;
+            quoteLines.push(lines[i].replace(/^>\s?/, ""));
+          }
+          out.push(`<blockquote>${parseMarkdown(quoteLines.join("\n"))}</blockquote>`);
+          continue;
+        }
+
+        const task = /^\s*[-*]\s+\[( |x|X)\]\s+(.+)$/.exec(line);
+        if (task) {
+          flushParagraph();
+          openList("ul");
+          const checked = task[1].toLowerCase() === "x" ? " checked" : "";
+          out.push(`<li><input type="checkbox" disabled${checked}> ${processInline(task[2])}</li>`);
+          continue;
+        }
+
+        const ul = /^\s*[-*+]\s+(.+)$/.exec(line);
+        if (ul) {
+          flushParagraph();
+          openList("ul");
+          out.push(`<li>${processInline(ul[1])}</li>`);
+          continue;
+        }
+
+        const ol = /^\s*\d+\.\s+(.+)$/.exec(line);
+        if (ol) {
+          flushParagraph();
+          openList("ol");
+          out.push(`<li>${processInline(ol[1])}</li>`);
+          continue;
+        }
+
+        paragraph.push(line.trim());
+      }
+
+      if (inCode) {
+        out.push(renderCodeBlock(codeLang, codeLines.join("\n")));
+      }
+
+      flushParagraph();
+      closeList();
+
+      return out.join("\n");
+    }
+
+    function render() {
+      const value = editor.value;
+      preview.innerHTML = parseMarkdown(value);
+      localStorage.setItem(STORAGE_KEY, value);
+      updateCounts(value);
+      saveState.textContent = "自動保存済み";
+      const now = new Date();
+      lastSaved.textContent = `最終保存 ${now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+    }
+
+    function scheduleRender() {
+      saveState.textContent = "編集中";
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(render, 120);
+    }
+
+    function updateCounts(text) {
+      charCount.textContent = String(text.length);
+      lineCount.textContent = String(text.length ? text.split("\n").length : 0);
+      const words = text
+        .replace(/[。、！？「」『』（）【】]/g, " ")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      wordCount.textContent = String(words.length);
+    }
+
+    function insertAtCursor(before, after = "", placeholder = "") {
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const selected = editor.value.slice(start, end);
+      const insertText = before + (selected || placeholder) + after;
+      editor.setRangeText(insertText, start, end, "select");
+      if (!selected && placeholder) {
+        editor.selectionStart = start + before.length;
+        editor.selectionEnd = start + before.length + placeholder.length;
+      }
+      editor.focus();
+      scheduleRender();
+    }
+
+    function wrapSelectedWithColor(type, color) {
+      if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+        showToast("色指定が不正です");
+        return;
+      }
+
+      const marker = type === "bg" ? "bg" : "color";
+      insertAtCursor(`{{${marker}:${color}|`, "}}", "text");
+    }
+
+    function applyAppBackgroundColor(color) {
+      if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+        showToast("背景色が不正です");
+        return;
+      }
+      document.documentElement.style.setProperty("--bg", color);
+      localStorage.setItem(APP_BG_COLOR_KEY, color);
+      const picker = document.getElementById("appBgColorPicker");
+      if (picker) picker.value = color;
+    }
+
+    function resetAppBackgroundColor() {
+      localStorage.removeItem(APP_BG_COLOR_KEY);
+      document.documentElement.style.removeProperty("--bg");
+      const picker = document.getElementById("appBgColorPicker");
+      if (picker) picker.value = "#f3f4f6";
+    }
+
+    function getCurrentLineInfo() {
+      const pos = editor.selectionStart;
+      const value = editor.value;
+      const lineStart = value.lastIndexOf("\n", pos - 1) + 1;
+      let lineEnd = value.indexOf("\n", pos);
+      if (lineEnd === -1) lineEnd = value.length;
+      return {
+        pos,
+        lineStart,
+        lineEnd,
+        line: value.slice(lineStart, lineEnd),
+        beforeCursor: value.slice(lineStart, pos),
+        afterCursor: value.slice(pos, lineEnd)
+      };
+    }
+
+    function handleSmartEnter(event) {
+      if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) {
+        return false;
+      }
+
+      if (editor.selectionStart !== editor.selectionEnd) {
+        return false;
+      }
+
+      const info = getCurrentLineInfo();
+      const before = info.beforeCursor;
+      const after = info.afterCursor;
+
+      const taskMatch = before.match(/^(\s*)[-*+]\s+\[( |x|X)\]\s*(.*)$/);
+      const unorderedMatch = before.match(/^(\s*)([-*+])\s+(.*)$/);
+      const orderedMatch = before.match(/^(\s*)(\d+)([.)])\s+(.*)$/);
+      const quoteMatch = before.match(/^(\s*>\s?)(.*)$/);
+
+      let nextPrefix = "";
+      let emptyCurrentListItem = false;
+      let currentPrefixLength = 0;
+
+      if (taskMatch) {
+        nextPrefix = `${taskMatch[1]}- [ ] `;
+        emptyCurrentListItem = taskMatch[3].trim() === "" && after.trim() === "";
+        currentPrefixLength = taskMatch[0].length - taskMatch[3].length;
+      } else if (orderedMatch) {
+        const nextNumber = Number(orderedMatch[2]) + 1;
+        nextPrefix = `${orderedMatch[1]}${nextNumber}${orderedMatch[3]} `;
+        emptyCurrentListItem = orderedMatch[4].trim() === "" && after.trim() === "";
+        currentPrefixLength = orderedMatch[0].length - orderedMatch[4].length;
+      } else if (unorderedMatch) {
+        nextPrefix = `${unorderedMatch[1]}${unorderedMatch[2]} `;
+        emptyCurrentListItem = unorderedMatch[3].trim() === "" && after.trim() === "";
+        currentPrefixLength = unorderedMatch[0].length - unorderedMatch[3].length;
+      } else if (quoteMatch) {
+        nextPrefix = quoteMatch[1];
+        emptyCurrentListItem = quoteMatch[2].trim() === "" && after.trim() === "";
+        currentPrefixLength = quoteMatch[1].length;
+      } else {
+        return false;
+      }
+
+      event.preventDefault();
+
+      if (emptyCurrentListItem) {
+        const lineContent = editor.value.slice(info.lineStart, info.lineEnd);
+        const removable = lineContent.slice(0, currentPrefixLength);
+        if (lineContent.trim() === removable.trim()) {
+          editor.setRangeText("", info.lineStart, info.lineEnd, "end");
+          scheduleRender();
+          return true;
+        }
+      }
+
+      editor.setRangeText(`\n${nextPrefix}`, info.pos, info.pos, "end");
+      scheduleRender();
+      return true;
+    }
+
+    function prefixSelectedLines(prefixFactory) {
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const value = editor.value;
+      const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+      const lineEndRaw = value.indexOf("\n", end);
+      const lineEnd = lineEndRaw === -1 ? value.length : lineEndRaw;
+      const selectedBlock = value.slice(lineStart, lineEnd);
+      const lines = selectedBlock.split("\n");
+      const replaced = lines.map((line, index) => prefixFactory(line, index)).join("\n");
+      editor.setRangeText(replaced, lineStart, lineEnd, "select");
+      editor.focus();
+      scheduleRender();
+    }
+
+    function sanitizeFilename(name) {
+      return String(name || "")
+        .trim()
+        .replace(/[\\/:*?"<>|]/g, "_")
+        .replace(/\s+/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^\.+/, "")
+        .slice(0, 120);
+    }
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatDateForFilename(dateValue) {
+      const date = new Date(dateValue);
+      if (Number.isNaN(date.getTime())) return "unknown_date";
+      const yyyy = date.getFullYear();
+      const mm = pad2(date.getMonth() + 1);
+      const dd = pad2(date.getDate());
+      const hh = pad2(date.getHours());
+      const min = pad2(date.getMinutes());
+      return `${yyyy}${mm}${dd}_${hh}${min}`;
+    }
+
+    function ensureCreatedAt(reset = false) {
+      if (reset || !localStorage.getItem(CREATED_AT_KEY)) {
+        localStorage.setItem(CREATED_AT_KEY, new Date().toISOString());
+      }
+      return localStorage.getItem(CREATED_AT_KEY);
+    }
+
+    function getDocumentTitle() {
+      const h1 = editor.value.match(/^#\s+(.+)$/m);
+      if (h1 && h1[1].trim()) return h1[1].trim();
+
+      const h2 = editor.value.match(/^##\s+(.+)$/m);
+      if (h2 && h2[1].trim()) return h2[1].trim();
+
+      const firstNonEmpty = editor.value
+        .split("\n")
+        .map(line => line.replace(/^#+\s*/, "").trim())
+        .find(Boolean);
+
+      return firstNonEmpty || "無題";
+    }
+
+    function buildAutoBaseName() {
+      const title = sanitizeFilename(getDocumentTitle()) || "無題";
+      const createdAt = ensureCreatedAt(false);
+      return sanitizeFilename(`${title}_${formatDateForFilename(createdAt)}`) || `memo_${formatDateForFilename(createdAt)}`;
+    }
+
+    function updateFilenameFromTitle() {
+      const input = document.getElementById("filenameInput");
+      if (!input) return;
+      input.value = buildAutoBaseName();
+    }
+
+    function isAutoFilenameEnabled() {
+      return document.getElementById("autoFilename")?.checked !== false;
+    }
+
+    function getSaveBaseName() {
+      const input = document.getElementById("filenameInput");
+      if (isAutoFilenameEnabled()) {
+        const autoName = buildAutoBaseName();
+        if (input) input.value = autoName;
+        return autoName;
+      }
+
+      const typed = sanitizeFilename(input?.value || "");
+      if (typed) return typed;
+
+      const autoName = buildAutoBaseName();
+      if (input) input.value = autoName;
+      return autoName;
+    }
+
+    function withExtension(baseName, extension) {
+      const cleanExt = extension.replace(/^\./, "");
+      const cleanBase = sanitizeFilename(baseName).replace(/\.(md|markdown|html|htm)$/i, "");
+      return `${cleanBase || buildAutoBaseName()}.${cleanExt}`;
+    }
+
+    function downloadFile(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function buildStandalonePreviewHtml() {
+      const rendered = parseMarkdown(editor.value);
+      const css = document.querySelector("style").textContent;
+      const appBg = localStorage.getItem(APP_BG_COLOR_KEY) || "#ffffff";
+      return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown Preview</title>
+<style>${css}</style>
+</head>
+<body style="height:auto;overflow:auto;background:${appBg};">
+<article class="preview">${rendered}</article>
+<script>
+document.addEventListener("click", function(event) {
+  const button = event.target.closest(".copy-code");
+  if (!button) return;
+  const code = button.closest(".code-block").querySelector("pre code").textContent;
+  navigator.clipboard.writeText(code);
+  button.textContent = "コピー済み";
+  setTimeout(() => button.textContent = "コピー", 1200);
+});
+<\/script>
+</body>
+</html>`;
+    }
+
+
+    const IMAGE_COMPRESS_CONFIG = {
+      maxWidth: 1600,
+      maxHeight: 1600,
+      compressOverBytes: 700 * 1024,
+      preferredType: "image/webp",
+      fallbackType: "image/jpeg",
+      quality: 0.82
+    };
+
+    function normalizeImageName(name) {
+      return String(name || "image")
+        .replace(/\.[^.]+$/, "")
+        .replace(/[\\/:*?"<>|#%&{}$!'@+`=]/g, "_")
+        .replace(/\s+/g, "_")
+        .slice(0, 80) || "image";
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function loadImageFromBlob(blob) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("画像を読み込めませんでした"));
+        };
+        img.src = url;
+      });
+    }
+
+    function canvasToBlob(canvas, type, quality) {
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), type, quality);
+      });
+    }
+
+    function calcResizeSize(width, height, maxWidth, maxHeight) {
+      const scale = Math.min(1, maxWidth / width, maxHeight / height);
+      return {
+        width: Math.max(1, Math.round(width * scale)),
+        height: Math.max(1, Math.round(height * scale)),
+        scaled: scale < 1
+      };
+    }
+
+    function isCompressibleRaster(file) {
+      return ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/bmp"].includes(file.type);
+    }
+
+    async function compressImageIfNeeded(file) {
+      if (!isCompressibleRaster(file)) {
+        return {
+          blob: file,
+          dataUrl: await readFileAsDataUrl(file),
+          compressed: false,
+          originalBytes: file.size,
+          finalBytes: file.size,
+          width: null,
+          height: null
+        };
+      }
+
+      try {
+        const img = await loadImageFromBlob(file);
+        const resize = calcResizeSize(
+          img.naturalWidth || img.width,
+          img.naturalHeight || img.height,
+          IMAGE_COMPRESS_CONFIG.maxWidth,
+          IMAGE_COMPRESS_CONFIG.maxHeight
+        );
+
+        const shouldCompress = resize.scaled || file.size > IMAGE_COMPRESS_CONFIG.compressOverBytes;
+        if (!shouldCompress) {
+          return {
+            blob: file,
+            dataUrl: await readFileAsDataUrl(file),
+            compressed: false,
+            originalBytes: file.size,
+            finalBytes: file.size,
+            width: img.naturalWidth || img.width,
+            height: img.naturalHeight || img.height
+          };
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = resize.width;
+        canvas.height = resize.height;
+        const ctx = canvas.getContext("2d", { alpha: true });
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        ctx.drawImage(img, 0, 0, resize.width, resize.height);
+
+        let blob = await canvasToBlob(
+          canvas,
+          IMAGE_COMPRESS_CONFIG.preferredType,
+          IMAGE_COMPRESS_CONFIG.quality
+        );
+
+        if (!blob) {
+          blob = await canvasToBlob(
+            canvas,
+            IMAGE_COMPRESS_CONFIG.fallbackType,
+            IMAGE_COMPRESS_CONFIG.quality
+          );
+        }
+
+        if (!blob || blob.size >= file.size) {
+          return {
+            blob: file,
+            dataUrl: await readFileAsDataUrl(file),
+            compressed: false,
+            originalBytes: file.size,
+            finalBytes: file.size,
+            width: img.naturalWidth || img.width,
+            height: img.naturalHeight || img.height
+          };
+        }
+
+        return {
+          blob,
+          dataUrl: await blobToDataUrl(blob),
+          compressed: true,
+          originalBytes: file.size,
+          finalBytes: blob.size,
+          width: resize.width,
+          height: resize.height
+        };
+      } catch (error) {
+        console.warn(error);
+        return {
+          blob: file,
+          dataUrl: await readFileAsDataUrl(file),
+          compressed: false,
+          originalBytes: file.size,
+          finalBytes: file.size,
+          width: null,
+          height: null
+        };
+      }
+    }
+
+    function getImageFilesFromClipboard(event) {
+      const files = Array.from(event.clipboardData?.files || [])
+        .filter(file => file.type && file.type.startsWith("image/"));
+
+      const itemFiles = Array.from(event.clipboardData?.items || [])
+        .filter(item => item.kind === "file" && item.type && item.type.startsWith("image/"))
+        .map(item => item.getAsFile())
+        .filter(Boolean);
+
+      const merged = [...files, ...itemFiles];
+      const seen = new Set();
+      return merged.filter(file => {
+        const key = `${file.name}_${file.type}_${file.size}_${file.lastModified}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes && bytes !== 0) return "-";
+      if (bytes < 1024) return `${bytes}B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+      return `${(bytes / 1024 / 1024).toFixed(2)}MB`;
+    }
+
+    async function insertImageFiles(files) {
+      const imageFiles = Array.from(files || []).filter(file => file.type && file.type.startsWith("image/"));
+      if (!imageFiles.length) {
+        showToast("画像ファイルがありません");
+        return;
+      }
+
+      const parts = [];
+      let originalTotal = 0;
+      let finalTotal = 0;
+      let compressedCount = 0;
+
+      for (const file of imageFiles) {
+        originalTotal += file.size;
+        const result = await compressImageIfNeeded(file);
+        finalTotal += result.finalBytes;
+        if (result.compressed) compressedCount++;
+
+        const alt = normalizeImageName(file.name || `screenshot_${Date.now()}`);
+        parts.push(`![${alt}](${result.dataUrl})`);
+      }
+
+      insertAtCursor(`\n${parts.join("\n\n")}\n`, "", "");
+
+      if (compressedCount > 0) {
+        showToast(`画像${imageFiles.length}件を挿入。${compressedCount}件圧縮: ${formatBytes(originalTotal)} → ${formatBytes(finalTotal)}`);
+      } else {
+        showToast(`画像${imageFiles.length}件を挿入: ${formatBytes(finalTotal)}`);
+      }
+    }
+
+
+    const DOCUMENT_TEMPLATES = {
+      business_memo: `# 社内連絡メモ
+
+## 件名
+- 
+
+## 伝えたいこと
+- 
+
+## 背景
+- 
+
+## 対象者
+- 
+
+## 依頼事項
+- 
+
+## 期限
+- 
+
+## 補足
+- 
+
+## 添付・参照
+- 
+`,
+
+      meeting_minutes: `# 議事録
+
+## 会議情報
+| 項目 | 内容 |
+|---|---|
+| 会議名 |  |
+| 日時 |  |
+| 参加者 |  |
+| 作成者 |  |
+
+## 目的
+- 
+
+## 決定事項
+1. 
+
+## 論点
+| 論点 | 内容 | 結論 |
+|---|---|---|
+|  |  |  |
+
+## アクション
+| No | 内容 | 担当 | 期限 | 状態 |
+|---:|---|---|---|---|
+| 1 |  |  |  | 未着手 |
+
+## 未決事項
+- 
+
+## 次回確認事項
+- 
+`,
+
+      weekly_report: `# 週次報告
+
+## 対象期間
+- 
+
+## 今週の実施事項
+- 
+
+## 成果
+- 
+
+## 数値・進捗
+| 項目 | 計画 | 実績 | 差異 | コメント |
+|---|---:|---:|---:|---|
+|  |  |  |  |  |
+
+## 課題
+- 
+
+## 来週やること
+- [ ] 
+- [ ] 
+- [ ] 
+
+## 判断・支援が必要なこと
+- 
+`,
+
+      issue_report: `# 課題・障害報告
+
+## 概要
+- 
+
+## 発生日時
+- 
+
+## 影響範囲
+- 
+
+## 現象
+- 
+
+## 原因
+- 確定原因：
+- 推定原因：
+
+## 暫定対応
+- 
+
+## 恒久対応
+- 
+
+## 再発防止
+- 
+
+## 対応状況
+| 項目 | 担当 | 期限 | 状態 |
+|---|---|---|---|
+|  |  |  |  |
+
+## エスカレーション要否
+- 要 / 不要
+- 理由：
+`,
+
+      improvement_proposal: `# 業務改善提案
+
+## 1. 現状
+- 
+
+## 2. 問題
+- 
+
+## 3. 問題が起きている原因
+- 
+
+## 4. 改善案
+- 
+
+## 5. 期待効果
+| 効果 | 内容 | 見込み |
+|---|---|---|
+| 工数削減 |  |  |
+| ミス削減 |  |  |
+| 標準化 |  |  |
+| 判断速度向上 |  |  |
+
+## 6. 実施手順
+1. 
+2. 
+3. 
+
+## 7. リスク
+- 
+
+## 8. 必要な判断
+- 
+`,
+
+      measure_plan: `# 施策計画書
+
+## 施策名
+- 
+
+## 施策ID
+- 
+
+## 目的
+- 
+
+## 背景
+- 
+
+## 対象
+| 区分 | 内容 |
+|---|---|
+| 対象店舗 |  |
+| 対象部門 |  |
+| 対象商品 |  |
+| 対象期間 |  |
+
+## 成功条件
+- 
+
+## KPI
+| KPI | 現状 | 目標 | 測定方法 |
+|---|---:|---:|---|
+|  |  |  |  |
+
+## 実施内容
+- 
+
+## 店舗への依頼事項
+- 
+
+## 関係部署
+| 部署 | 役割 |
+|---|---|
+|  |  |
+
+## スケジュール
+| 日付 | 内容 | 担当 |
+|---|---|---|
+|  |  |  |
+
+## 想定リスク
+- 
+
+## 事後検証方法
+- 
+`,
+
+      measure_review: `# 施策振り返り
+
+## 施策名
+- 
+
+## 施策ID
+- 
+
+## 対象期間
+- 
+
+## 結論
+- 
+
+## 結果サマリー
+| 指標 | 実績 | 前年 | 計画 | 評価 |
+|---|---:|---:|---:|---|
+| 売上 |  |  |  |  |
+| 粗利 |  |  |  |  |
+| 点数 |  |  |  |  |
+| 客数 |  |  |  |  |
+| PI値 |  |  |  |  |
+
+## 良かった点
+- 
+
+## 悪かった点
+- 
+
+## 店舗差・ばらつき
+- 
+
+## 原因仮説
+- 
+
+## 次回に活かすこと
+- 
+
+## 次回の修正案
+- 
+`,
+
+      kpi_analysis: `# KPI・数値分析報告
+
+## 分析テーマ
+- 
+
+## 結論
+- 
+
+## 見た指標
+| 指標 | 定義 | 備考 |
+|---|---|---|
+|  |  |  |
+
+## 数値結果
+| 区分 | 実績 | 比較対象 | 差異 | コメント |
+|---|---:|---:|---:|---|
+|  |  |  |  |  |
+
+## 分解
+- 売上 = 客数 × 客単価
+- 客単価 = 買上点数 × 一品単価
+- 売上 = 対象客数 × PI値 × 平均単価
+
+## 主な要因
+1. 
+2. 
+3. 
+
+## 注意点
+- データ期間：
+- 対象範囲：
+- 除外条件：
+
+## 次に確認すること
+- 
+`,
+
+      decision_request: `# 判断依頼書
+
+## 判断してほしいこと
+- 
+
+## 結論案
+- 
+
+## 背景
+- 
+
+## 選択肢
+| 案 | 内容 | メリット | デメリット | 推奨 |
+|---|---|---|---|---|
+| A |  |  |  |  |
+| B |  |  |  |  |
+| C |  |  |  |  |
+
+## 判断基準
+- 
+
+## 影響範囲
+- 
+
+## 期限
+- 
+
+## 判断しない場合のリスク
+- 
+`,
+
+      a3_framework: `# A3問題解決シート
+
+## 1. テーマ
+- 
+
+## 2. 背景
+- 
+
+## 3. 現状把握
+- 
+
+## 4. あるべき姿
+- 
+
+## 5. ギャップ
+- 
+
+## 6. 真因
+- 
+
+## 7. 対策
+| 対策 | 担当 | 期限 | 期待効果 |
+|---|---|---|---|
+|  |  |  |  |
+
+## 8. 実行計画
+| 日付 | 実施内容 | 担当 | 状態 |
+|---|---|---|---|
+|  |  |  |  |
+
+## 9. 効果確認
+- 
+
+## 10. 標準化・横展開
+- 
+`,
+
+      raci: `# RACI整理
+
+## 対象業務・施策
+- 
+
+## 目的
+- 
+
+## 関係者
+- 
+
+## RACI表
+| タスク | R:実行責任 | A:結果責任 | C:相談先 | I:共有先 |
+|---|---|---|---|---|
+|  |  |  |  |  |
+
+## 責任が曖昧な箇所
+- 
+
+## 決めるべきこと
+- 
+
+## 次のアクション
+- 
+`,
+
+      pdca: `# PDCA整理
+
+## テーマ
+- 
+
+## Plan：計画
+- 目的：
+- KPI：
+- 対象：
+- 期限：
+
+## Do：実行
+- 
+
+## Check：確認
+| 項目 | 計画 | 実績 | 差異 | 評価 |
+|---|---:|---:|---:|---|
+|  |  |  |  |  |
+
+## Act：改善
+- 
+
+## 次回の計画修正
+- 
+
+## 残課題
+- 
+`
+    };
+
+    function insertSelectedTemplate() {
+      const select = document.getElementById("templateSelect");
+      const key = select.value;
+      if (!key || !DOCUMENT_TEMPLATES[key]) {
+        showToast("雛形を選択してください");
+        return;
+      }
+
+      const template = DOCUMENT_TEMPLATES[key].trim();
+      const needsBreak = editor.value && !editor.value.endsWith("\n") ? "\n\n" : "";
+      insertAtCursor(`${needsBreak}${template}\n`, "", "");
+      showToast("雛形を挿入しました");
+    }
+
+    document.getElementById("applyTextColor").addEventListener("click", () => {
+      const color = document.getElementById("textColorPicker").value;
+      wrapSelectedWithColor("color", color);
+    });
+
+    document.getElementById("applyTextBgColor").addEventListener("click", () => {
+      const color = document.getElementById("textBgColorPicker").value;
+      wrapSelectedWithColor("bg", color);
+    });
+
+    document.getElementById("applyAppBgColor").addEventListener("click", () => {
+      const color = document.getElementById("appBgColorPicker").value;
+      applyAppBackgroundColor(color);
+      showToast("全体背景色を変更しました");
+    });
+
+    document.getElementById("appBgColorPicker").addEventListener("input", (event) => {
+      applyAppBackgroundColor(event.target.value);
+    });
+
+    document.getElementById("resetColorSettings").addEventListener("click", () => {
+      resetAppBackgroundColor();
+      showToast("背景色を初期化しました");
+    });
+
+    document.querySelectorAll("[data-wrap]").forEach(button => {
+      button.addEventListener("click", () => {
+        const mark = button.dataset.wrap;
+        insertAtCursor(mark, mark, "text");
+      });
+    });
+
+    document.querySelectorAll("[data-insert]").forEach(button => {
+      button.addEventListener("click", () => {
+        insertAtCursor(button.dataset.insert, "", "見出し");
+      });
+    });
+
+    document.querySelectorAll("[data-block]").forEach(button => {
+      button.addEventListener("click", () => {
+        const type = button.dataset.block;
+        if (type === "quote") {
+          prefixSelectedLines((line) => `> ${line || "引用文"}`);
+        }
+        if (type === "ul") {
+          prefixSelectedLines((line) => `- ${line || "項目"}`);
+        }
+        if (type === "ol") {
+          prefixSelectedLines((line, index) => `${index + 1}. ${line || "項目"}`);
+        }
+        if (type === "task") {
+          prefixSelectedLines((line) => `- [ ] ${line || "タスク"}`);
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-template]").forEach(button => {
+      button.addEventListener("click", () => {
+        const type = button.dataset.template;
+        if (type === "code") {
+          insertAtCursor("```javascript\n", "\n```", "console.log('hello');");
+        }
+        if (type === "table") {
+          insertAtCursor("\n| 項目 | 内容 |\n|---|---|\n| A | B |\n", "", "");
+        }
+        if (type === "link") {
+          insertAtCursor("[", "](https://example.com)", "リンクテキスト");
+        }
+        if (type === "image") {
+          insertAtCursor("![", "](./image.png)", "画像説明");
+        }
+        if (type === "hr") {
+          insertAtCursor("\n---\n", "", "");
+        }
+      });
+    });
+
+    editor.addEventListener("input", scheduleRender);
+
+    editor.addEventListener("keydown", (event) => {
+      if (handleSmartEnter(event)) return;
+
+      if (event.key === "Tab") {
+        event.preventDefault();
+        insertAtCursor("  ");
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        const filename = withExtension(getSaveBaseName(), "md");
+        downloadFile(filename, editor.value, "text/markdown;charset=utf-8");
+        showToast(`${filename} を保存しました`);
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b") {
+        event.preventDefault();
+        insertAtCursor("**", "**", "text");
+      }
+    });
+
+    viewMode.addEventListener("change", () => {
+      layout.classList.remove("editor-only", "preview-only");
+      if (viewMode.value === "editor") layout.classList.add("editor-only");
+      if (viewMode.value === "preview") layout.classList.add("preview-only");
+    });
+
+    document.getElementById("mobileEdit").addEventListener("click", () => {
+      layout.classList.remove("mobile-preview");
+      layout.classList.add("mobile-editor");
+      document.getElementById("mobileEdit").classList.add("primary");
+      document.getElementById("mobilePreview").classList.remove("primary");
+    });
+
+    document.getElementById("mobilePreview").addEventListener("click", () => {
+      render();
+      layout.classList.remove("mobile-editor");
+      layout.classList.add("mobile-preview");
+      document.getElementById("mobilePreview").classList.add("primary");
+      document.getElementById("mobileEdit").classList.remove("primary");
+    });
+
+    document.getElementById("downloadMd").addEventListener("click", () => {
+      const filename = withExtension(getSaveBaseName(), "md");
+      downloadFile(filename, editor.value, "text/markdown;charset=utf-8");
+      showToast(`${filename} を保存しました`);
+    });
+
+    document.getElementById("downloadHtml").addEventListener("click", () => {
+      const filename = withExtension(getSaveBaseName(), "html");
+      downloadFile(filename, buildStandalonePreviewHtml(), "text/html;charset=utf-8");
+      showToast(`${filename} を保存しました`);
+    });
+
+    document.getElementById("printPreview").addEventListener("click", () => {
+      render();
+      window.print();
+    });
+
+    document.getElementById("insertTemplate").addEventListener("click", insertSelectedTemplate);
+
+    document.getElementById("refreshFilename").addEventListener("click", () => {
+      updateFilenameFromTitle();
+      showToast("保存名を更新しました");
+    });
+
+    document.getElementById("autoFilename").addEventListener("change", (event) => {
+      localStorage.setItem(AUTO_FILENAME_KEY, event.target.checked ? "1" : "0");
+      if (event.target.checked) updateFilenameFromTitle();
+      showToast(event.target.checked ? "自動命名をONにしました" : "自動命名をOFFにしました");
+    });
+
+    document.getElementById("filenameInput").addEventListener("input", () => {
+      const auto = document.getElementById("autoFilename");
+      if (auto && auto.checked) {
+        auto.checked = false;
+        localStorage.setItem(AUTO_FILENAME_KEY, "0");
+      }
+    });
+
+    document.getElementById("copyMarkdown").addEventListener("click", async () => {
+      await navigator.clipboard.writeText(editor.value);
+      showToast("Markdownをコピーしました");
+    });
+
+    document.getElementById("clearAll").addEventListener("click", () => {
+      const ok = confirm("編集中の内容をクリアします。localStorageの自動保存も上書きされます。よろしいですか？");
+      if (!ok) return;
+      editor.value = "";
+      ensureCreatedAt(true);
+      updateFilenameFromTitle();
+      render();
+      showToast("クリアしました");
+    });
+
+
+    document.getElementById("uploadImage").addEventListener("click", () => {
+      document.getElementById("imageInput").click();
+    });
+
+    document.getElementById("imageInput").addEventListener("change", async (event) => {
+      await insertImageFiles(event.target.files);
+      event.target.value = "";
+    });
+
+    editor.addEventListener("paste", async (event) => {
+      const files = getImageFilesFromClipboard(event);
+      if (!files.length) return;
+      event.preventDefault();
+      await insertImageFiles(files);
+    });
+
+    editor.addEventListener("dragover", (event) => {
+      event.preventDefault();
+    });
+
+    editor.addEventListener("drop", async (event) => {
+      const files = Array.from(event.dataTransfer?.files || []).filter(file => file.type.startsWith("image/"));
+      if (!files.length) return;
+      event.preventDefault();
+      await insertImageFiles(files);
+    });
+
+    document.getElementById("fileInput").addEventListener("change", async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      editor.value = text;
+      ensureCreatedAt(true);
+      const base = sanitizeFilename(file.name.replace(/\.(md|markdown|txt)$/i, ""));
+      const filenameInput = document.getElementById("filenameInput");
+      if (filenameInput && base && !isAutoFilenameEnabled()) filenameInput.value = base;
+      if (isAutoFilenameEnabled()) updateFilenameFromTitle();
+      render();
+      showToast("読み込みました");
+      event.target.value = "";
+    });
+
+    preview.addEventListener("click", async (event) => {
+      const button = event.target.closest(".copy-code");
+      if (!button) return;
+      const code = button.closest(".code-block").querySelector("pre code").textContent;
+      await navigator.clipboard.writeText(code);
+      button.textContent = "コピー済み";
+      setTimeout(() => button.textContent = "コピー", 1200);
+    });
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth <= 860 && !layout.classList.contains("mobile-preview")) {
+        layout.classList.add("mobile-editor");
+      } else if (window.innerWidth > 860) {
+        layout.classList.remove("mobile-editor", "mobile-preview");
+      }
+    });
+
+    editor.value = localStorage.getItem(STORAGE_KEY) || initialMarkdown;
+    ensureCreatedAt(false);
+
+    const autoFilename = document.getElementById("autoFilename");
+    const savedAuto = localStorage.getItem(AUTO_FILENAME_KEY);
+    if (autoFilename && savedAuto !== null) {
+      autoFilename.checked = savedAuto !== "0";
+    }
+
+    updateFilenameFromTitle();
+
+    const savedAppBgColor = localStorage.getItem(APP_BG_COLOR_KEY);
+    if (savedAppBgColor) {
+      applyAppBackgroundColor(savedAppBgColor);
+    }
+
+    if (window.innerWidth <= 860) {
+      layout.classList.add("mobile-editor");
+    }
+    render();
+  </script>
+</body>
+</html>
