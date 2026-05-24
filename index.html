@@ -261,22 +261,35 @@
     main {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) 260px minmax(0, 1fr);
       gap: 0;
       min-height: 0;
     }
 
     main.editor-only {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr) 260px;
     }
 
     main.preview-only {
-      grid-template-columns: 1fr;
+      grid-template-columns: 260px minmax(0, 1fr);
     }
 
     main.editor-only .preview-pane,
     main.preview-only .editor-pane {
       display: none;
+    }
+
+    main.toc-hidden {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    main.toc-hidden .toc-pane {
+      display: none;
+    }
+
+    main.editor-only.toc-hidden,
+    main.preview-only.toc-hidden {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .pane {
@@ -287,8 +300,88 @@
       background: var(--panel);
     }
 
-    .editor-pane {
+    .editor-pane,
+    .toc-pane {
       border-right: 1px solid var(--border);
+    }
+
+    .toc-pane {
+      background: var(--panel-2);
+    }
+
+    .toc-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 10px 10px 18px;
+    }
+
+    .toc {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .toc a {
+      display: block;
+      color: var(--text);
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 6px 8px;
+      border: 1px solid transparent;
+    }
+
+    .toc a:hover,
+    .toc a.active {
+      background: var(--accent-2);
+      border-color: #c7d9e8;
+      color: var(--accent);
+    }
+
+    .toc .toc-level-1 {
+      padding-left: 8px;
+      font-weight: 800;
+    }
+
+    .toc .toc-level-2 {
+      padding-left: 18px;
+      font-weight: 650;
+    }
+
+    .toc .toc-level-3 {
+      padding-left: 30px;
+    }
+
+    .toc .toc-level-4 {
+      padding-left: 42px;
+      font-size: 12.5px;
+    }
+
+    .toc .toc-level-5,
+    .toc .toc-level-6 {
+      padding-left: 54px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .toc-empty {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .toc-help {
+      margin: 10px 2px 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .toc-count {
+      white-space: nowrap;
     }
 
     .pane-title {
@@ -343,6 +436,22 @@
       line-height: 1.35;
       margin: 1.4em 0 0.55em;
       letter-spacing: -0.02em;
+      scroll-margin-top: 18px;
+    }
+
+    .preview h1:target,
+    .preview h2:target,
+    .preview h3:target,
+    .preview h4:target,
+    .preview h5:target,
+    .preview h6:target {
+      background: linear-gradient(90deg, var(--accent-2), transparent);
+      border-radius: 8px;
+    }
+
+    .heading-anchor {
+      color: inherit;
+      text-decoration: none;
     }
 
     .preview h1 {
@@ -486,6 +595,59 @@
       margin: 2em 0;
     }
 
+    .export-layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 24px;
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 60px;
+      height: auto;
+      min-height: 100vh;
+    }
+
+    .export-toc {
+      align-self: start;
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .export-toc h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .export-layout .preview {
+      max-width: none;
+      margin: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    @media (max-width: 860px) {
+      .export-layout {
+        display: block;
+        width: auto;
+        padding: 12px;
+      }
+
+      .export-toc {
+        position: static;
+        max-height: none;
+        margin-bottom: 12px;
+      }
+    }
+
     .status {
       display: flex;
       align-items: center;
@@ -566,16 +728,26 @@
         display: flex;
       }
 
-      main {
+      main,
+      main.editor-only,
+      main.preview-only,
+      main.toc-hidden,
+      main.editor-only.toc-hidden,
+      main.preview-only.toc-hidden {
         grid-template-columns: 1fr;
       }
 
+      main.mobile-editor .toc-pane,
       main.mobile-editor .preview-pane,
-      main.mobile-preview .editor-pane {
+      main.mobile-toc .editor-pane,
+      main.mobile-toc .preview-pane,
+      main.mobile-preview .editor-pane,
+      main.mobile-preview .toc-pane {
         display: none;
       }
 
-      .editor-pane {
+      .editor-pane,
+      .toc-pane {
         border-right: 0;
       }
 
@@ -594,6 +766,7 @@
       .toolbar,
       .pane-title,
       .editor-pane,
+      .toc-pane,
       .status,
       .mobile-tabs,
       .toast {
@@ -637,6 +810,7 @@
         <option value="editor">編集のみ</option>
         <option value="preview">プレビューのみ</option>
       </select>
+      <button id="toggleToc" type="button" title="目次ペインの表示切替">目次ON</button>
       <label class="button" for="fileInput">MD読込</label>
       <input id="fileInput" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" />
       <input id="imageInput" type="file" accept="image/*" multiple />
@@ -722,6 +896,7 @@
 
   <div class="mobile-tabs">
     <button id="mobileEdit" class="primary">編集</button>
+    <button id="mobileToc">目次</button>
     <button id="mobilePreview">プレビュー</button>
   </div>
 
@@ -734,10 +909,21 @@
       <textarea id="editor" spellcheck="false"></textarea>
     </section>
 
+    <section class="pane toc-pane">
+      <div class="pane-title">
+        <span>目次</span>
+        <span id="tocCount" class="toc-count">0件</span>
+      </div>
+      <div class="toc-scroll">
+        <nav id="toc" class="toc" aria-label="文書の目次"></nav>
+        <p class="toc-help">Markdownの見出し（#、##、### など）から自動生成します。クリックすると編集位置とプレビュー位置へ移動します。</p>
+      </div>
+    </section>
+
     <section class="pane preview-pane">
       <div class="pane-title">
         <span>Preview</span>
-        <span>コードブロックはコピー可能</span>
+        <span>目次リンク対応</span>
       </div>
       <div class="preview-wrap">
         <article id="preview" class="preview"></article>
@@ -757,6 +943,7 @@
     const CREATED_AT_KEY = "local-markdown-editor-created-at-v1";
     const AUTO_FILENAME_KEY = "local-markdown-editor-auto-filename-v1";
     const APP_BG_COLOR_KEY = "local-markdown-editor-app-bg-color-v1";
+    const TOC_VISIBLE_KEY = "local-markdown-editor-toc-visible-v1";
 
     const initialMarkdown = `# ローカルMarkdownエディタ
 
@@ -811,6 +998,9 @@ hello("Markdown");
     const wordCount = document.getElementById("wordCount");
     const lineCount = document.getElementById("lineCount");
     const toast = document.getElementById("toast");
+    const toc = document.getElementById("toc");
+    const tocCount = document.getElementById("tocCount");
+    const toggleToc = document.getElementById("toggleToc");
 
     let renderTimer = null;
     let toastTimer = null;
@@ -845,6 +1035,119 @@ hello("Markdown");
         return escapeHtml(trimmed);
       }
       return safeUrl(trimmed);
+    }
+
+    function stripMarkdownForToc(text) {
+      return String(text || "")
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "$1")
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/\{\{(?:color|bg):#[0-9a-fA-F]{6}\|(.+?)\}\}/g, "$1")
+        .replace(/[*_~]/g, "")
+        .replace(/<[^>]+>/g, "")
+        .trim();
+    }
+
+    function createHeadingId(text, usedIds) {
+      const plain = stripMarkdownForToc(text);
+      let base = plain
+        .normalize("NFKC")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s_-]+/gu, "")
+        .trim()
+        .replace(/[\s_]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      if (!base) base = "heading";
+
+      const count = usedIds.get(base) || 0;
+      usedIds.set(base, count + 1);
+      return count === 0 ? base : `${base}-${count + 1}`;
+    }
+
+    function extractHeadings(markdown) {
+      const lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+      const usedIds = new Map();
+      const headings = [];
+      let inCode = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (/^```/.test(line.trim())) {
+          inCode = !inCode;
+          continue;
+        }
+        if (inCode) continue;
+
+        const match = /^(#{1,6})\s+(.+)$/.exec(line);
+        if (!match) continue;
+
+        const title = stripMarkdownForToc(match[2]);
+        const id = createHeadingId(match[2], usedIds);
+        headings.push({
+          level: match[1].length,
+          rawTitle: match[2],
+          title: title || `見出し ${headings.length + 1}`,
+          id,
+          line: i
+        });
+      }
+
+      return headings;
+    }
+
+    function renderTocHtml(headings, includeLineData = true) {
+      if (!headings.length) {
+        return `<p class="toc-empty">見出しがまだありません。<br># 見出し、## 見出し のように書くと目次が自動生成されます。</p>`;
+      }
+
+      return headings.map((heading) => {
+        const lineData = includeLineData ? ` data-line="${heading.line}" data-heading-id="${escapeHtml(heading.id)}"` : "";
+        return `<a class="toc-level-${heading.level}" href="#${escapeHtml(heading.id)}"${lineData}>${escapeHtml(heading.title)}</a>`;
+      }).join("\n");
+    }
+
+    function updateToc(markdown) {
+      if (!toc) return;
+      const headings = extractHeadings(markdown);
+      toc.innerHTML = renderTocHtml(headings, true);
+      if (tocCount) tocCount.textContent = `${headings.length}件`;
+    }
+
+    function getTextOffsetForLine(text, lineNumber) {
+      if (lineNumber <= 0) return 0;
+      let offset = 0;
+      const lines = String(text || "").split("\n");
+      for (let i = 0; i < Math.min(lineNumber, lines.length); i++) {
+        offset += lines[i].length + 1;
+      }
+      return offset;
+    }
+
+    function jumpToHeading(headingId, lineNumber) {
+      const target = headingId ? document.getElementById(headingId) : null;
+      if (target) {
+        target.scrollIntoView({ block: "start", behavior: "smooth" });
+      }
+
+      if (Number.isFinite(lineNumber) && lineNumber >= 0) {
+        const offset = getTextOffsetForLine(editor.value, lineNumber);
+        editor.focus({ preventScroll: true });
+        editor.selectionStart = offset;
+        editor.selectionEnd = offset;
+        const lineHeight = Number.parseFloat(getComputedStyle(editor).lineHeight) || 22;
+        editor.scrollTop = Math.max(0, lineNumber * lineHeight - editor.clientHeight * 0.25);
+      }
+
+      if (headingId) {
+        history.replaceState(null, "", `#${encodeURIComponent(headingId)}`);
+      }
+
+      toc?.querySelectorAll("a.active").forEach(link => link.classList.remove("active"));
+      const active = Array.from(toc?.querySelectorAll("a[data-heading-id]") || [])
+        .find(link => link.dataset.headingId === headingId);
+      if (active) active.classList.add("active");
     }
 
     function processInline(text) {
@@ -935,6 +1238,7 @@ hello("Markdown");
       let inCode = false;
       let codeLang = "";
       let codeLines = [];
+      const headingIds = new Map();
 
       function flushParagraph() {
         if (!paragraph.length) return;
@@ -1005,7 +1309,8 @@ hello("Markdown");
           flushParagraph();
           closeList();
           const level = heading[1].length;
-          out.push(`<h${level}>${processInline(heading[2])}</h${level}>`);
+          const id = createHeadingId(heading[2], headingIds);
+          out.push(`<h${level} id="${escapeHtml(id)}" tabindex="-1"><a class="heading-anchor" href="#${escapeHtml(id)}">${processInline(heading[2])}</a></h${level}>`);
           continue;
         }
 
@@ -1070,6 +1375,7 @@ hello("Markdown");
     function render() {
       const value = editor.value;
       preview.innerHTML = parseMarkdown(value);
+      updateToc(value);
       localStorage.setItem(STORAGE_KEY, value);
       updateCounts(value);
       saveState.textContent = "自動保存済み";
@@ -1326,6 +1632,8 @@ hello("Markdown");
 
     function buildStandalonePreviewHtml() {
       const rendered = parseMarkdown(editor.value);
+      const headings = extractHeadings(editor.value);
+      const tocHtml = renderTocHtml(headings, false);
       const css = document.querySelector("style").textContent;
       const appBg = localStorage.getItem(APP_BG_COLOR_KEY) || "#ffffff";
       return `<!DOCTYPE html>
@@ -1333,11 +1641,17 @@ hello("Markdown");
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Markdown Preview</title>
+<title>${escapeHtml(getDocumentTitle())}</title>
 <style>${css}</style>
 </head>
 <body style="height:auto;overflow:auto;background:${appBg};">
-<article class="preview">${rendered}</article>
+<main class="export-layout">
+  <aside class="export-toc">
+    <h2>目次</h2>
+    <nav class="toc" aria-label="文書の目次">${tocHtml}</nav>
+  </aside>
+  <article class="preview">${rendered}</article>
+</main>
 <script>
 document.addEventListener("click", function(event) {
   const button = event.target.closest(".copy-code");
@@ -2110,20 +2424,38 @@ document.addEventListener("click", function(event) {
       if (viewMode.value === "preview") layout.classList.add("preview-only");
     });
 
-    document.getElementById("mobileEdit").addEventListener("click", () => {
-      layout.classList.remove("mobile-preview");
-      layout.classList.add("mobile-editor");
-      document.getElementById("mobileEdit").classList.add("primary");
-      document.getElementById("mobilePreview").classList.remove("primary");
+    function setTocVisible(visible) {
+      layout.classList.toggle("toc-hidden", !visible);
+      if (toggleToc) toggleToc.textContent = visible ? "目次ON" : "目次OFF";
+      localStorage.setItem(TOC_VISIBLE_KEY, visible ? "1" : "0");
+    }
+
+    toggleToc?.addEventListener("click", () => {
+      const visible = layout.classList.contains("toc-hidden");
+      setTocVisible(visible);
     });
 
-    document.getElementById("mobilePreview").addEventListener("click", () => {
-      render();
-      layout.classList.remove("mobile-editor");
-      layout.classList.add("mobile-preview");
-      document.getElementById("mobilePreview").classList.add("primary");
-      document.getElementById("mobileEdit").classList.remove("primary");
+    toc?.addEventListener("click", (event) => {
+      const link = event.target.closest("a[data-heading-id]");
+      if (!link) return;
+      event.preventDefault();
+      const line = Number(link.dataset.line);
+      jumpToHeading(link.dataset.headingId, line);
     });
+
+    function setMobileMode(mode) {
+      render();
+      layout.classList.remove("mobile-editor", "mobile-toc", "mobile-preview");
+      layout.classList.add(`mobile-${mode}`);
+
+      document.getElementById("mobileEdit").classList.toggle("primary", mode === "editor");
+      document.getElementById("mobileToc").classList.toggle("primary", mode === "toc");
+      document.getElementById("mobilePreview").classList.toggle("primary", mode === "preview");
+    }
+
+    document.getElementById("mobileEdit").addEventListener("click", () => setMobileMode("editor"));
+    document.getElementById("mobileToc").addEventListener("click", () => setMobileMode("toc"));
+    document.getElementById("mobilePreview").addEventListener("click", () => setMobileMode("preview"));
 
     document.getElementById("downloadMd").addEventListener("click", () => {
       const filename = withExtension(getSaveBaseName(), "md");
@@ -2231,10 +2563,10 @@ document.addEventListener("click", function(event) {
     });
 
     window.addEventListener("resize", () => {
-      if (window.innerWidth <= 860 && !layout.classList.contains("mobile-preview")) {
+      if (window.innerWidth <= 860 && !layout.classList.contains("mobile-preview") && !layout.classList.contains("mobile-toc")) {
         layout.classList.add("mobile-editor");
       } else if (window.innerWidth > 860) {
-        layout.classList.remove("mobile-editor", "mobile-preview");
+        layout.classList.remove("mobile-editor", "mobile-toc", "mobile-preview");
       }
     });
 
@@ -2253,6 +2585,9 @@ document.addEventListener("click", function(event) {
     if (savedAppBgColor) {
       applyAppBackgroundColor(savedAppBgColor);
     }
+
+    const savedTocVisible = localStorage.getItem(TOC_VISIBLE_KEY);
+    setTocVisible(savedTocVisible !== "0");
 
     if (window.innerWidth <= 860) {
       layout.classList.add("mobile-editor");
