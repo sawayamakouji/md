@@ -1532,7 +1532,104 @@ hello("Markdown");
       editor.focus();
       scheduleRender();
     }
+    function getSelectedLineRangeForIndent() {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const value = editor.value;
+  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
 
+  let lineEnd = value.indexOf("\n", end);
+  if (lineEnd === -1) {
+    lineEnd = value.length;
+  }
+
+  if (end > start && value[end - 1] === "\n") {
+    lineEnd = end - 1;
+  }
+
+  return { lineStart, lineEnd, start, end };
+}
+
+function changeSelectedLinesIndent(direction) {
+  const value = editor.value;
+  const { lineStart, lineEnd, start, end } = getSelectedLineRangeForIndent();
+  const block = value.slice(lineStart, lineEnd);
+  const lines = block.split("\n");
+  const indent = "  ";
+
+  let firstLineDelta = 0;
+  let totalDelta = 0;
+
+  const replaced = lines.map((line, index) => {
+    if (!line.trim()) {
+      return line;
+    }
+
+    if (direction === "indent") {
+      if (index === 0) {
+        firstLineDelta += indent.length;
+      }
+
+      totalDelta += indent.length;
+      return indent + line;
+    }
+
+    if (line.startsWith(indent)) {
+      if (index === 0) {
+        firstLineDelta -= indent.length;
+      }
+
+      totalDelta -= indent.length;
+      return line.slice(indent.length);
+    }
+
+    if (line.startsWith("\t")) {
+      if (index === 0) {
+        firstLineDelta -= 1;
+      }
+
+      totalDelta -= 1;
+      return line.slice(1);
+    }
+
+    if (line.startsWith(" ")) {
+      if (index === 0) {
+        firstLineDelta -= 1;
+      }
+
+      totalDelta -= 1;
+      return line.slice(1);
+    }
+
+    return line;
+  }).join("\n");
+
+  editor.setRangeText(replaced, lineStart, lineEnd, "preserve");
+
+  editor.selectionStart = Math.max(lineStart, start + firstLineDelta);
+  editor.selectionEnd = Math.max(editor.selectionStart, end + totalDelta);
+
+  editor.focus();
+  scheduleRender();
+}
+
+function handleIndentKey(event) {
+  if (event.key !== "Tab") {
+    return false;
+  }
+
+  event.preventDefault();
+
+  if (event.shiftKey) {
+    changeSelectedLinesIndent("outdent");
+  } else {
+    changeSelectedLinesIndent("indent");
+  }
+
+  return true;
+}
+
+    
     function sanitizeFilename(name) {
       return String(name || "")
         .trim()
@@ -2398,12 +2495,8 @@ document.addEventListener("click", function(event) {
     editor.addEventListener("input", scheduleRender);
 
     editor.addEventListener("keydown", (event) => {
+      if (handleIndentKey(event)) return;
       if (handleSmartEnter(event)) return;
-
-      if (event.key === "Tab") {
-        event.preventDefault();
-        insertAtCursor("  ");
-      }
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
